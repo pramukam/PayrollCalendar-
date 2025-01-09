@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monday Start Calendar with Multiple Highlights</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background: #f9f9f9;
+    }
+
+    .calendar-container {
+      max-width: 300px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #e3e3e3;
+      padding: 10px;
+    }
+
+    .calendar-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .calendar-header button {
+      background: #ccc;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+
+    .calendar-header button:hover {
+      background: #bbb;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-gap: 1px;
+      background: #ccc;
+    }
+
+    .calendar-grid div {
+      background: #fff;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 0.9rem;
+    }
+
+    /* Weekday labels */
+    .calendar-grid .weekday-label {
+      background: #f0f0f0;
+      font-weight: bold;
+    }
+
+    /* Today highlight (pinkish) */
+    .today {
+      background: #fee;
+      border: 1px solid #f99;
+    }
+
+    /* Holiday text in red */
+    .holiday {
+      color: red;
+      font-weight: bold;
+    }
+
+    /* 4-week cycle start => yellow background */
+    .four-week-start {
+        background: #98ff98 !important;
+    }
+
+    /* 4-week cycle end => yellow background */
+    .green-cycle {
+      background: #ebb48f !important; /* or 'lightgreen' or any shade you prefer */
+    }
+  </style>
+</head>
+<body>
+
+  <div class="calendar-container">
+    <div class="calendar-header">
+      <button id="prevMonthBtn">&laquo;</button>
+      <h2 id="monthYearLabel"></h2>
+      <button id="nextMonthBtn">&raquo;</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid">
+      <!-- The calendar days will be populated by JavaScript -->
+    </div>
+  </div>
+
+  <script>
+    /* 
+      1) Public holidays (red text)
+         (Same as before; update if needed)
+    */
+    const ntHolidays2025 = [
+      '2025-01-01',
+      '2025-01-27',
+      '2025-04-18',
+      '2025-04-19',
+      '2025-04-20',
+      '2025-04-21',
+      '2025-04-25',
+      '2025-05-05',
+      '2025-06-09',
+      '2025-07-25',
+      '2025-08-04',
+      '2025-12-24',
+      '2025-12-25',
+      '2025-12-26',
+      '2025-12-31'
+    ];
+
+    /*
+      2) 4-week cycle dates (yellow background)
+         (Same as before; update if needed)
+    */
+    const fourWeekCycleDates = [
+      '2025-01-06',
+      '2025-02-03',
+      '2025-03-03',
+      '2025-03-31',
+      '2025-04-28',
+      '2025-05-26',
+      '2025-06-23',
+      '2025-07-21',
+      '2025-08-18',
+      '2025-09-15',
+      '2025-10-13',
+      '2025-11-10',
+      '2025-12-08',
+      '2026-01-05'
+    ];
+
+    /*
+      3) New green cycle dates (green background)
+         Convert your given dd/mm/yyyy to YYYY-MM-DD:
+         2/02/2025  => 2025-02-02
+         2/03/2025  => 2025-03-02
+         30/03/2025 => 2025-03-30
+         27/04/2025 => 2025-04-27
+         25/05/2025 => 2025-05-25
+         22/06/2025 => 2025-06-22
+         20/07/2025 => 2025-07-20
+         17/08/2025 => 2025-08-17
+         14/09/2025 => 2025-09-14
+         12/10/2025 => 2025-10-12
+         9/11/2025  => 2025-11-09
+         7/12/2025  => 2025-12-07
+         4/01/2026  => 2026-01-04
+         1/02/2026  => 2026-02-01
+    */
+    const greenCycleDates = [
+      '2025-02-02',
+      '2025-03-02',
+      '2025-03-30',
+      '2025-04-27',
+      '2025-05-25',
+      '2025-06-22',
+      '2025-07-20',
+      '2025-08-17',
+      '2025-09-14',
+      '2025-10-12',
+      '2025-11-09',
+      '2025-12-07',
+      '2026-01-04',
+      '2026-02-01'
+    ];
+
+    /**
+     * Generate a 6x7 calendar matrix starting on Monday.
+     * @param {number} year  The year (e.g., 2025).
+     * @param {number} month The month (0=January, 1=February, ..., 11=December).
+     * @returns {Date[][]}   A 2D array of Date objects (6 rows, 7 columns).
+     */
+    function generateCalendarMatrix(year, month) {
+      const firstOfMonth = new Date(year, month, 1);
+
+      // JavaScript's getDay() => Sunday=0, Monday=1, ..., Saturday=6.
+      // We want Monday=1, Tuesday=2, ..., Sunday=7.
+      let dayOfWeek = firstOfMonth.getDay();
+      if (dayOfWeek === 0) {
+        dayOfWeek = 7; // Sunday -> 7
+      }
+
+      // Offset to go back to Monday of the current week.
+      const offset = dayOfWeek - 1;
+      const startDate = new Date(year, month, 1 - offset);
+
+      // Build a 6 (rows) x 7 (columns) matrix
+      const calendar = [];
+      for (let row = 0; row < 6; row++) {
+        const rowDates = [];
+        for (let col = 0; col < 7; col++) {
+          const currentDate = new Date(startDate);
+          currentDate.setDate(startDate.getDate() + row * 7 + col);
+          rowDates.push(currentDate);
+        }
+        calendar.push(rowDates);
+      }
+      return calendar;
+    }
+
+    // Start the calendar on January 2025
+    let currentYear = 2025;
+    let currentMonth = 0;
+
+    /**
+     * Renders the calendar into the .calendar-grid container.
+     */
+    function renderCalendar(year, month) {
+      const calendarGrid = document.getElementById('calendarGrid');
+      calendarGrid.innerHTML = ''; // Clear existing cells
+
+      // Generate the 6x7 calendar matrix
+      const matrix = generateCalendarMatrix(year, month);
+
+      // (1) Create row of weekday labels (Mon-Sun)
+      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      weekdays.forEach(day => {
+        const labelDiv = document.createElement('div');
+        labelDiv.textContent = day;
+        labelDiv.classList.add('weekday-label');
+        calendarGrid.appendChild(labelDiv);
+      });
+
+      // (2) Populate the dates
+      const today = new Date();
+      for (let row = 0; row < 6; row++) {
+        for (let col = 0; col < 7; col++) {
+          const dateObj = matrix[row][col];
+          const dateDiv = document.createElement('div');
+          dateDiv.textContent = dateObj.getDate();
+
+          // (2a) Highlight if it's "today"
+          if (
+            dateObj.getFullYear() === today.getFullYear() &&
+            dateObj.getMonth() === today.getMonth() &&
+            dateObj.getDate() === today.getDate()
+          ) {
+            dateDiv.classList.add('today');
+          }
+
+          // (2b) Convert current date to YYYY-MM-DD
+          const yyyy = dateObj.getFullYear();
+          const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+          const dd = String(dateObj.getDate()).padStart(2, '0');
+          const dateStr = `${yyyy}-${mm}-${dd}`;
+
+          // (2c) Public holiday => red text
+          if (ntHolidays2025.includes(dateStr)) {
+            dateDiv.classList.add('holiday');
+          }
+
+          // (2d) 4-week cycle => yellow background
+          if (fourWeekCycleDates.includes(dateStr)) {
+            dateDiv.classList.add('four-week-start');
+          }
+
+          // (2e) New "green cycle" => green background
+          if (greenCycleDates.includes(dateStr)) {
+            dateDiv.classList.add('green-cycle');
+          }
+
+          calendarGrid.appendChild(dateDiv);
+        }
+      }
+
+      // (3) Update month-year label
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ];
+      const monthYearLabel = document.getElementById('monthYearLabel');
+      monthYearLabel.textContent = `${monthNames[month]} ${year}`;
+    }
+
+    // Buttons: Previous / Next Month
+    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    // Initial render
+    renderCalendar(currentYear, currentMonth);
+  </script>
+
+</body>
+</html>
