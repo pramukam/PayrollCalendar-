@@ -2,47 +2,80 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Monday Start Calendar with State Persistence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Responsive Calendar</title>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
       background: #f9f9f9;
     }
 
     .calendar-container {
-      max-width: 300px;
-      margin: 0 auto;
+      max-width: 90%;
+      margin: 40px auto;
       background: #fff;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
       overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+      .calendar-container {
+        max-width: 60%;
+      }
+    }
+
+    @media (min-width: 1200px) {
+      .calendar-container {
+        max-width: 50%;
+      }
     }
 
     .calendar-header {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      background: #e3e3e3;
-      padding: 10px;
+      justify-content: space-between;
+      background: #007bff;
+      color: #fff;
+      padding: 10px 15px;
+      border-top-left-radius: 8px;
+      border-top-right-radius: 8px;
     }
 
-    .calendar-header h2 {
-      margin: 0;
-      font-size: 1.1rem;
+    .calendar-header .dropdown-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .calendar-header select {
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      padding: 5px;
     }
 
     .calendar-header button {
-      background: #ccc;
       border: none;
-      padding: 5px 10px;
+      padding: 8px 12px;
       cursor: pointer;
-      font-size: 1rem;
+      background: #0056b3;
+      color: #fff;
+      border-radius: 4px;
       transition: background 0.2s;
     }
 
     .calendar-header button:hover {
-      background: #bbb;
+      background: #003d80;
+    }
+
+    .calendar-header button.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .calendar-grid {
@@ -56,263 +89,360 @@
       background: #fff;
       text-align: center;
       padding: 10px 0;
-      font-size: 0.9rem;
-    }
-
-    /* Weekday labels */
-    .calendar-grid .weekday-label {
-      background: #f0f0f0;
+      font-size: 1rem;
       font-weight: bold;
     }
 
-    /* Today highlight (pinkish) */
-    .today {
-      background: #fee;
-      border: 1px solid #f99;
+    .weekday-label {
+      background: #cbff3b !important;
+      color: #000;
+      font-weight: bold;
+      padding: 10px 0;
     }
 
-    /* Example holiday (red text) */
+    .today {
+      background: #ffe6e6;
+      border: 2px solid #ff4d4d;
+    }
+
     .holiday {
       color: red;
       font-weight: bold;
     }
 
-    /* Example cycle start (yellow background) */
     .four-week-start {
-        background: #98ff98 !important;
+      background: #98ff98 !important;
     }
 
-    /* Example green cycle start (green background) */
-    .green-cycle {
+    .four-week-end {
       background: #ffd698 !important;
+    }
+
+    .out-of-month {
+      color: #aaa;
+      background: #f5f5f5;
+    }
+
+    .calendar-labels {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+
+    .calendar-labels .label-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 5px;
+    }
+
+    .label-circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+    }
+
+    .label-holiday {
+      background: red;
+    }
+
+    .label-four-week-start {
+      background: #98ff98;
+    }
+
+    .label-four-week-end {
+      background: #ffd698;
+    }
+
+    .calendar-note {
+      margin-top: 10px;
+      font-size: 0.9rem;
+      color: #555;
+      text-align: center;
+    }
+
+    /* Mobile-specific styles */
+    @media (max-width: 768px) {
+      .calendar-header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .calendar-header .dropdown-container {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .calendar-header select {
+        font-size: 0.9rem;
+        padding: 5px;
+      }
+
+      .calendar-grid div {
+        padding: 8px 0;
+        font-size: 0.85rem;
+      }
+
+      .calendar-labels {
+        justify-content: flex-start;
+        flex-direction: column;
+        margin-left: 15px;
+      }
     }
   </style>
 </head>
 <body>
-
-  <div class="calendar-container">
-    <div class="calendar-header">
-      <button id="prevMonthBtn">&laquo;</button>
-      <h2 id="monthYearLabel"></h2>
-      <button id="nextMonthBtn">&raquo;</button>
-    </div>
-    <div class="calendar-grid" id="calendarGrid">
-      <!-- The calendar days will be populated by JavaScript -->
+  <div class="container-fluid">
+    <div class="calendar-container">
+      <div class="calendar-header">
+        <button id="prevMonthBtn">&laquo;</button>
+        <div class="dropdown-container">
+          <select id="monthDropdown"></select>
+          <select id="yearDropdown"></select>
+        </div>
+        <button id="nextMonthBtn">&raquo;</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- Calendar content generated dynamically -->
+      </div>
+      <div class="calendar-labels">
+        <div class="label-item">
+          <div class="label-circle label-holiday"></div>
+          <span>Public Holiday</span>
+        </div>
+        <div class="label-item">
+          <div class="label-circle label-four-week-start"></div>
+          <span>Start of Four-Week Cycle</span>
+        </div>
+        <div class="label-item">
+          <div class="label-circle label-four-week-end"></div>
+          <span>End of Four-Week Cycle</span>
+        </div>
+      </div>
+      <div class="calendar-note">
+        <small>*24th & 31st December is part day holiday (After 7.00PM)</small>
+      </div>
     </div>
   </div>
 
+  <!-- Bootstrap JS Bundle -->
   <script>
-    /*
-      1) Arrays for different highlights (PUBLIC HOLIDAYS, 4-WEEK CYCLE, etc.)
-         These are just examples; adjust or remove if not needed.
-    */
     const ntHolidays2025 = [
-      '2025-01-01',
-      '2025-01-27',
-      '2025-04-18',
-      '2025-04-19',
-      '2025-04-20',
-      '2025-04-21',
-      '2025-04-25',
-      '2025-05-05',
-      '2025-06-09',
-      '2025-07-25',
-      '2025-08-04',
-      '2025-12-24',
-      '2025-12-25',
-      '2025-12-26',
-      '2025-12-31'
-
+      "2025-01-01",
+      "2025-01-27",
+      "2025-04-18",
+      "2025-04-19",
+      "2025-04-20",
+      "2025-04-21",
+      "2025-04-25",
+      "2025-05-05",
+      "2025-06-09",
+      "2025-07-25",
+      "2025-08-04",
+      "2025-12-24",
+      "2025-12-25",
+      "2025-12-26",
+      "2025-12-31",
     ];
 
-    const fourWeekCycleDates = [
-      '2025-01-06',
-      '2025-02-03',
-      '2025-03-03',
-      '2025-03-31',
-      '2025-04-28',
-      '2025-05-26',
-      '2025-06-23',
-      '2025-07-21',
-      '2025-08-18',
-      '2025-09-15',
-      '2025-10-13',
-      '2025-11-10',
-      '2025-12-08',
-      '2026-01-05'
-    ];
+    function saveState() {
+      localStorage.setItem("calendarYear", currentYear);
+      localStorage.setItem("calendarMonth", currentMonth);
+    }
 
-    const greenCycleDates = [
-      '2025-02-02',
-      '2025-03-02',
-      '2025-03-30',
-      '2025-04-27',
-      '2025-05-25',
-      '2025-06-22',
-      '2025-07-20',
-      '2025-08-17',
-      '2025-09-14',
-      '2025-10-12',
-      '2025-11-09',
-      '2025-12-07',
-      '2026-01-04',
-      '2026-02-01'
-    ];
+    function loadState() {
+      const savedYear = localStorage.getItem("calendarYear");
+      const savedMonth = localStorage.getItem("calendarMonth");
+      if (savedYear && savedMonth) {
+        return {
+          year: parseInt(savedYear, 10),
+          month: parseInt(savedMonth, 10),
+        };
+      } else {
+        return { year: 2025, month: 0 };
+      }
+    }
 
-    /**
-     * Generate a 6x7 calendar matrix (rows x columns) starting on Monday.
-     * @param {number} year  The year (e.g., 2025).
-     * @param {number} month The month (0=January, 1=February, ..., 11=December).
-     * @returns {Date[][]}   A 2D array of Date objects (6 rows, 7 columns).
-     */
-    function generateCalendarMatrix(year, month) {
-      const firstOfMonth = new Date(year, month, 1);
+    function generateDynamicFourWeekCycles(startDate, maxDate) {
+      const startDates = [];
+      const endDates = [];
+      let currentStart = new Date(startDate);
 
-      // Sunday=0, Monday=1, ..., Saturday=6 in JS
-      let dayOfWeek = firstOfMonth.getDay();
-      if (dayOfWeek === 0) {
-        dayOfWeek = 7; // shift Sunday -> 7
+      while (currentStart <= maxDate) {
+        const startCycle = new Date(currentStart);
+        startDates.push(formatDate(startCycle));
+
+        const endCycle = new Date(startCycle);
+        endCycle.setDate(startCycle.getDate() + 27);
+        endDates.push(formatDate(endCycle));
+
+        currentStart = new Date(endCycle);
+        currentStart.setDate(endCycle.getDate() + 1);
       }
 
-      // Offset to move back to Monday of that week
+      return { startDates, endDates };
+    }
+
+    function formatDate(date) {
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, "0");
+      const dd = String(date.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    let currentYear, currentMonth;
+
+    function populateDropdowns() {
+      const monthDropdown = document.getElementById("monthDropdown");
+      const yearDropdown = document.getElementById("yearDropdown");
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+      ];
+
+      monthDropdown.innerHTML = "";
+      yearDropdown.innerHTML = "";
+
+      monthNames.forEach((month, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = month;
+        monthDropdown.appendChild(option);
+      });
+
+      const startYear = 2025;
+      const endYear = new Date().getFullYear() + 5;
+      for (let year = startYear; year <= endYear; year++) {
+        const option = document.createElement("option");
+        option.value = year;
+        option.textContent = year;
+        yearDropdown.appendChild(option);
+      }
+    }
+
+    function updateNavigationButtons() {
+      const prevBtn = document.getElementById("prevMonthBtn");
+      if (currentYear === 2025 && currentMonth === 0) {
+        prevBtn.classList.add("disabled");
+        prevBtn.disabled = true;
+      } else {
+        prevBtn.classList.remove("disabled");
+        prevBtn.disabled = false;
+      }
+    }
+
+    function generateCalendarMatrix(year, month) {
+      const firstOfMonth = new Date(year, month, 1);
+      let dayOfWeek = firstOfMonth.getDay();
+      if (dayOfWeek === 0) dayOfWeek = 7;
       const offset = dayOfWeek - 1;
       const startDate = new Date(year, month, 1 - offset);
 
-      // Build a 6 (rows) x 7 (columns) matrix
       const calendar = [];
       for (let row = 0; row < 6; row++) {
-        const rowDates = [];
         for (let col = 0; col < 7; col++) {
           const currentDate = new Date(startDate);
           currentDate.setDate(startDate.getDate() + row * 7 + col);
-          rowDates.push(currentDate);
+          calendar.push(currentDate);
         }
-        calendar.push(rowDates);
       }
       return calendar;
     }
 
-    // -- PERSISTENCE: Save and Load from localStorage --
-    function saveCalendarState() {
-      localStorage.setItem('savedMonth', currentMonth);
-      localStorage.setItem('savedYear', currentYear);
-    }
-
-    function loadCalendarState() {
-      // Attempt to load saved month/year from localStorage
-      const savedMonth = localStorage.getItem('savedMonth');
-      const savedYear = localStorage.getItem('savedYear');
-
-      if (savedMonth !== null && savedYear !== null) {
-        currentMonth = parseInt(savedMonth, 10);
-        currentYear = parseInt(savedYear, 10);
-      } else {
-        // If nothing saved, default to January 2025 (or today's date, your choice)
-        currentMonth = 0;       // 0 = January
-        currentYear = 2025;
-      }
-    }
-
-    // We'll load state on page load, or fallback to default
-    let currentYear;
-    let currentMonth;
-
-    /**
-     * Render the calendar into #calendarGrid for the given year/month.
-     */
     function renderCalendar(year, month) {
-      const calendarGrid = document.getElementById('calendarGrid');
-      calendarGrid.innerHTML = ''; // Clear existing cells
+      const calendarGrid = document.getElementById("calendarGrid");
+      calendarGrid.innerHTML = "";
 
       const matrix = generateCalendarMatrix(year, month);
-      const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const weekdays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       const today = new Date();
 
-      // (1) Create row of weekday labels
+      const maxDate = new Date(year, month + 1, 0);
+      const { startDates: fourWeekCycleDates, endDates: fourWeekCycleEnds } =
+        generateDynamicFourWeekCycles("2025-01-06", maxDate);
+
       weekdays.forEach((day) => {
-        const labelDiv = document.createElement('div');
+        const labelDiv = document.createElement("div");
         labelDiv.textContent = day;
-        labelDiv.classList.add('weekday-label');
+        labelDiv.classList.add("weekday-label");
         calendarGrid.appendChild(labelDiv);
       });
 
-      // (2) Populate the dates
-      for (let row = 0; row < 6; row++) {
-        for (let col = 0; col < 7; col++) {
-          const dateObj = matrix[row][col];
-          const dateDiv = document.createElement('div');
-          dateDiv.textContent = dateObj.getDate();
+      matrix.forEach((dateObj) => {
+        const dateDiv = document.createElement("div");
+        dateDiv.textContent = dateObj.getDate();
 
-          // Check if it's "today"
-          if (
-            dateObj.getFullYear() === today.getFullYear() &&
-            dateObj.getMonth() === today.getMonth() &&
-            dateObj.getDate() === today.getDate()
-          ) {
-            dateDiv.classList.add('today');
-          }
-
-          // Convert to YYYY-MM-DD for comparison
-          const yyyy = dateObj.getFullYear();
-          const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const dd = String(dateObj.getDate()).padStart(2, '0');
-          const dateStr = `${yyyy}-${mm}-${dd}`;
-
-          // Public holiday => red text
-          if (ntHolidays2025.includes(dateStr)) {
-            dateDiv.classList.add('holiday');
-          }
-
-          // 4-week cycle => yellow background
-          if (fourWeekCycleDates.includes(dateStr)) {
-            dateDiv.classList.add('four-week-start');
-          }
-
-          // Green cycle => green background
-          if (greenCycleDates.includes(dateStr)) {
-            dateDiv.classList.add('green-cycle');
-          }
-
-          calendarGrid.appendChild(dateDiv);
+        if (dateObj.getMonth() !== month) {
+          dateDiv.classList.add("out-of-month");
         }
-      }
 
-      // (3) Update month-year label
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December',
-      ];
-      const monthYearLabel = document.getElementById('monthYearLabel');
-      monthYearLabel.textContent = `${monthNames[month]} ${year}`;
+        if (
+          dateObj.getFullYear() === today.getFullYear() &&
+          dateObj.getMonth() === today.getMonth() &&
+          dateObj.getDate() === today.getDate()
+        ) {
+          dateDiv.classList.add("today");
+        }
+
+        const yyyy = dateObj.getFullYear();
+        const mm = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const dd = String(dateObj.getDate()).padStart(2, "0");
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+
+        if (ntHolidays2025.includes(dateStr)) dateDiv.classList.add("holiday");
+        if (fourWeekCycleDates.includes(dateStr)) dateDiv.classList.add("four-week-start");
+        if (fourWeekCycleEnds.includes(dateStr)) dateDiv.classList.add("four-week-end");
+
+        calendarGrid.appendChild(dateDiv);
+      });
+
+      document.getElementById("monthDropdown").value = month;
+      document.getElementById("yearDropdown").value = year;
+
+      saveState();
+      updateNavigationButtons();
     }
 
-    // -- NAVIGATION: Buttons & Event Listeners --
-    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+    document.getElementById("prevMonthBtn").addEventListener("click", () => {
       currentMonth--;
       if (currentMonth < 0) {
         currentMonth = 11;
         currentYear--;
       }
-      saveCalendarState(); // <-- Save after changing month
       renderCalendar(currentYear, currentMonth);
     });
 
-    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+    document.getElementById("nextMonthBtn").addEventListener("click", () => {
       currentMonth++;
       if (currentMonth > 11) {
         currentMonth = 0;
         currentYear++;
       }
-      saveCalendarState(); // <-- Save after changing month
       renderCalendar(currentYear, currentMonth);
     });
 
-    // -- ON PAGE LOAD: Initialize from localStorage or fallback to default --
-    document.addEventListener('DOMContentLoaded', () => {
-      loadCalendarState();           // Load the last saved month/year if available
+    document.getElementById("monthDropdown").addEventListener("change", (e) => {
+      currentMonth = parseInt(e.target.value, 10);
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    document.getElementById("yearDropdown").addEventListener("change", (e) => {
+      currentYear = parseInt(e.target.value, 10);
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedState = loadState();
+      currentYear = savedState.year;
+      currentMonth = savedState.month;
+
+      populateDropdowns();
       renderCalendar(currentYear, currentMonth);
     });
   </script>
-
 </body>
 </html>
+
